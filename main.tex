@@ -16,6 +16,7 @@
 \makeatletter
 
 \usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
 \usepackage[nolist,nohyperlinks]{acronym}
 \usepackage[stable]{footmisc}
 \usepackage{mathtools}
@@ -59,6 +60,8 @@
 \maketitle              % typeset the title of the contribution
 
 \begin{abstract}
+A \ac{IdC} e a sua visão de ligar dispositivos entre sí e à Internet apresenta-se como uma oportunidade para criar gandes redes de partilha de informação. No entanto, intrusos podem capturar e debilitar estar redes tomando vantagem dos seus limitados recursos. No nosso trabalho promos um método para defender estas redes de ataques dirigidos a drenar a energia dos dispositivos. Para atingir este objectivo, realizamos uma análise extensiva aos protocolos, gamas de ataques e estratégias de mitigação existentes, combinando essa informação no nosso sistema de gestão de redes para espaços inteligentes. Ademais, conduzimos medições ao nível do espaço utilizado e recursos consumidos para entender quais os recursos fisicos necessários para este tipo de aplicações.
+
 A Internet das Coisas e a sua visão de ligar todos os dispositivos entre si apresenta-se como uma oportunidade para criar novos formatos e desenvolver a tecnologia das redes de sensores. No entanto, múltiplos atacantes podem tomar partido da débil natureza em termos de recursos desses dispositivos para lançar uma larga gama de ataques. Neste trabalho, abordamos esta questão a partir de uma perspectiva energética, com o objectivo de encontrar a melhor relação entre segurança e consumo energético. Para atingir este objectivo, realizamos uma análise extensiva aos protocolos, gamas de ataques e estratégias de mitigação existentes, combinando essa informação no nosso sistema de gestão de redes para espaços inteligentes. Ademais, criamos perfis de consumo energético para dotar futuros utilizadores com o conhecimento do tipo de recursos físicos a utilizar com base nas necessidades de segurança das suas aplicações.
 \keywords{Internet das Coisas; Segurança Energeticamente Ponderada; Bootstrapping Seguro; CoAP; 6LoWPAN; RPL; IEEE 802.15.4}
 \end{abstract}
@@ -470,6 +473,7 @@ As future work, memory access protection should be addressed in order to prevent
 % *** DEFINITION OF ACRONYMS ***
 \acrodef{IST}{Instituto Superior T\'ecnico}
 \acrodef{IoT}{Internet of Things}
+\acrodef{IdC}{Internet das Coisas}
 \acrodef{MQTT}{Message Queue Telemetry Transport}
 \acrodef{MQTT-SN}{Message Queue Telemetry Transport for Sensor Networks}
 \acrodef{CoAP}{Constrained Application Protocol}
