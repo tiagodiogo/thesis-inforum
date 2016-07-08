@@ -41,7 +41,7 @@
 
 \begin{document}
 
-\title{Segurança em Espaços Inteligentes: Infra-estruturas Energeticamente Ponderadas}
+\title{AutoStrap: Bootstrapping Seguro de Redes 6LoWPAN para Prevenir Ataques Vampiro em Ambientes da Internet das Coisas}
 %
 \titlerunning{Hamiltonian Mechanics}  % abbreviated title (for running head)
 %                                     also used for the TOC unless
@@ -60,410 +60,229 @@
 \maketitle              % typeset the title of the contribution
 
 \begin{abstract}
-A \ac{IdC} e a sua visão de ligar dispositivos entre sí e à Internet apresenta-se como uma oportunidade para criar gandes redes de partilha de informação. No entanto, intrusos podem capturar e debilitar estar redes tomando vantagem dos seus limitados recursos. No nosso trabalho promos um método para defender estas redes de ataques dirigidos a drenar a energia dos dispositivos. Para atingir este objectivo, realizamos uma análise extensiva aos protocolos, gamas de ataques e estratégias de mitigação existentes, combinando essa informação no nosso sistema de gestão de redes para espaços inteligentes. Ademais, conduzimos medições ao nível do espaço utilizado e recursos consumidos para entender quais os recursos fisicos necessários para este tipo de aplicações.
-
-A Internet das Coisas e a sua visão de ligar todos os dispositivos entre si apresenta-se como uma oportunidade para criar novos formatos e desenvolver a tecnologia das redes de sensores. No entanto, múltiplos atacantes podem tomar partido da débil natureza em termos de recursos desses dispositivos para lançar uma larga gama de ataques. Neste trabalho, abordamos esta questão a partir de uma perspectiva energética, com o objectivo de encontrar a melhor relação entre segurança e consumo energético. Para atingir este objectivo, realizamos uma análise extensiva aos protocolos, gamas de ataques e estratégias de mitigação existentes, combinando essa informação no nosso sistema de gestão de redes para espaços inteligentes. Ademais, criamos perfis de consumo energético para dotar futuros utilizadores com o conhecimento do tipo de recursos físicos a utilizar com base nas necessidades de segurança das suas aplicações.
-\keywords{Internet das Coisas; Segurança Energeticamente Ponderada; Bootstrapping Seguro; CoAP; 6LoWPAN; RPL; IEEE 802.15.4}
+A \ac{IdC} e a sua visão de ligar dispositivos entre si e à Internet apresenta-se como uma oportunidade para criar grandes redes de partilha de informação. No entanto, intrusos podem capturar e debilitar estar redes tomando vantagem dos seus limitados recursos. No nosso trabalho propomos AutoStrap -- um método de \textit{bootstrapping} seguro capaz de assegurar ambientes da \ac{IdC} baseados em redes 6LoWPAN -- que visa prevenir ataques de esgotamento de bateria (``vampiros'') com o âmbito de colocar a rede \textit{offline}. Para atingir este objetivo, realizamos uma análise extensiva aos protocolos, gamas de ataques e estratégias de mitigação existentes, combinando essa informação no nosso sistema proposto de gestão de redes para espaços inteligentes. Ademais, conduzimos medições ao nível do espaço utilizado e recursos consumidos para entender quais os recursos físicos necessários para este tipo de aplicações.
+\keywords{Internet das Coisas; Bootstrapping Seguro; Ataques Vampiro; CoAP; 6LoWPAN; RPL; IEEE 802.15.4}
 \end{abstract}
 
-\section{Introduction}
-The Internet of Things can be seen as a web of interconnected devices that range from everyday wearable objects to enterprise grade sensor networks. 
-Despite the huge variety and characteristics of these devices, one characteristic that they all have in common is their constrained nature. 
-In order to enable the massive deployment to be expected in the near future, \ac{IoT} devices must be accessible and affordable, capable of operating under lossy wireless networks while being battery powered. 
-Section \ref{sec:network_overview} presents an overview of the type of networks and scenarios under consideration. 
-Since \ac{IoT} environments can range from home to enterprise or even city environments, a breach in security could potentially leak important company activity or provide information about individuals choices and whereabouts constituting a violation of privacy \cite{Ukil2015}. 
-To this extent a study on existing attacks for constrained devices was conducted in Section \ref{sec:attack_analysis} and a common mitigation strategy (secure bootstrapping) presented in Section \ref{sec:secure_bootstrapping}. 
-This strategy provided security assurances at the cost of an increased infrastructure complexity, which in its turn created the necessity for a management station capable of storing and writing network credentials onto new nodes.
-Garlicstrap is further analysed in Section \ref{sec:implementation_details} and the supporting system architecture presented in Section \ref{sec:system_architecture}. In order to accurately define the type and amount of resources needed to create such a network, we deployed our protocol stack and management station on physical hardware and performed space and power measurements as presented in Section \ref{sec:evaluation}. 
-Finally, Section \ref{sec:conclusion} states our conclusions and opportunities for future work.
+\section{Introdução}
+A Internet das Coisas pode ser vista como uma teia de dispositivos interligados entre si que vão desde \textit{wearables} até redes de sensores de gama empresarial. Apesar da enorme variedade e diferenças entre estes dispositivos, algo que todos têm em comum é a sua natureza restrita de recursos. A secção \ref{sec:network_overview} aborda este tópico por analisar o tipo de redes e cenários em consideração. Dada esta variedade de ambientes, uma brecha na segurança destas redes pode implicar um vazamento de informação confidencial ou prover informações sobre as escolhas e paradeiro de um largo número de indivíduos constituindo uma violação de privacidade \cite{Ukil2015}. Nessa medida um estudo extensivo de ataques dirigidos a dispositivos restritos de recursos foi conduzido na secção \ref{sec:attack_analysis} e uma estratégia comum de mitigação apresentada na secção \ref{sec:secure_bootstrapping}. Esta estratégia provê garantias de segurança em troca de um aumento da complexidade da infraestrutura de apoio, o que por sua vez levou à proposta do AutoStrap e de uma estação de gestão da rede. A secção \ref{sec:proposed_infrastructure} dá uma visão mais detalhada destes dois sistemas. Para definir com precisão o tipo e quantidade de recursos necessários ao funcionamento de uma rede com estas garantias de segurança, conduzimos experiências de ocupação de espaço e consumo energético em dispositivos físicos, bem como testes de usabilidade ao nosso sistema. Os resultados estão expostos na secção \ref{sec:evaluation}. Por fim a secção \ref{sec:conclusion} apresenta as nossas conclusões e oportunidades para trabalho futuro.
 
-\section{Environment Overview}
+
+\section{Visão Geral da Rede}
 \label{sec:network_overview}
-There are many applicability domains and different methods for creating \ac{IoT} networks. 
-Some provide direct connectivity of nodes to the Internet while others provide a common gateway for interfacing with external networks. 
-In our work, we focus on scenarios where network nodes are not directly connected to the Internet and require additional network components for proper communication as depicted in Figure \ref{fig:net_overview}.
+Existem diversos domínios de aplicabilidade e métodos diferentes para criar redes \ac{IdC}. Alguns proveem comunicação direta entre os nós da rede e a Internet, enquanto outros proveem uma \textit{gateway} para interagir com redes externas. No nosso trabalho focamo-nos em cenários onde os nós da rede não estão diretamente ligados à Internet e necessitam de uma infraestrutura adicional de acesso e recolha de dados tal como apresentado na Figura \ref{fig:net_overview}.
 
-\begin{figure}[h]
+\begin{figure}
   \centering
-  \includegraphics[width=1.0\linewidth]{figures/Network_Overview.pdf}
-  \caption{IoT Network Overview.}
+  \includegraphics[height=6cm,keepaspectratio]{figures/Network_Overview.pdf}
+  %\includegraphics[width=0.7\linewidth]{figures/Network_Overview.pdf}
+  \caption{Visão Geral das Redes IdC Abordadas}
   \label{fig:net_overview}
 \end{figure}
 
-In this type of architectures, the sensing or actuating nodes belong to a very constrained network with specific protocols and header compression mechanisms, requiring an interface device -- the border router -- in order to communicate with external networks.
-After reaching the external network, incoming messages are processed to convert sensor data into useful information which is then stored or used to trigger events. 
-This information can then be accessed by users either on the same network or by making requests through the Internet. 
+Neste tipo de arquiteturas, os nós sensores ou atuadores pertencem a uma rede com recursos muito restritos que usa protocolos desenhados para essas necessidades e mecanismos de compressão de cabeçalhos para reduzir o tamanho dos pacotes, necessitando assim de um dispositivo de interface -- o \textit{border router} -- de forma a comunicar com redes exteriores. Após atingir a rede exterior, as mensagens são processadas para converter dados dos sensores em informação útil que é depois por sua vez armazenada ou utilizada para despoletar eventos. Esta informação pode ser normalmente acedida quer por clientes dentro da rede ou através de pedidos via Internet.
 
-This type of deployment could be used, for example, in a home intrusion system or in a factory monitoring system. 
-In the home intrusion system scenario, the network nodes would create a sensor network that propagates events in the case of an intrusion and the additional infrastructure would be in charge of receiving these events and notifying the police authorities. 
-In the factory monitoring system scenario, the network nodes would create a sensor network that would be permanently reporting up-to-date readings of machinery control values like: temperature, pressure and power; 
-and the additional infrastructure would in charge of supplying this information to a dashboard for the factory workers. 
-If an attacker could disable these systems, he could then 
-%rob the house or 
-cause an emergency shut-down of the factory machinery due to lack of control over the working conditions. 
-These are real concerns backed by a range of attacks that focuses on disabling \ac{IoT} networks by placing the nodes offline. These attacks are presented in the following Section.
+Este tipo de arquiteturas pode ser usado, por exemplo, em sistemas de intrusão domésticos ou em sistemas de monitorização fabril. No cenário do sistema de intrusão, os nós da rede colaborariam entre só para criar uma rede de sensores que propaga eventos em caso de intrusão, e a infraestrutura adicional estaria encarregue de receber esses eventos e notificar as autoridades. No cenário de monitorização fabril, os nós da rede estariam permanentemente a reportar leituras atualizadas de valores de controlo da maquinaria como por exemplo: temperatura, pressão e consumo instantâneo. A infraestrutura adicional estaria encarregue de fornecer esta informação a um painel de controlo monitorizado pelos operadores fabris. Se um atacante conseguisse desativar estes sistemas, poderia causar um encerramento de emergência da maquinaria fabril devido à falta de controlo sobre as condições de trabalho. Estas são preocupações reais apoiadas por uma gama de ataques que se foca em desativar redes \ac{IdC} por colocar os nós \textit{offline}. Tais ataques são de seguida analisados e documentados.
 
-
-\section{Attack Analysis}
+\section{Análise de Ataques}
 \label{sec:attack_analysis}
-Exploitation of existing solutions in the form of malicious attacks can be found across the \ac{OSI} layers. 
-They can range from a physical intruder replacing some node on a sensor field to the well-known \ac{DoS} at the application layer. 
-However, given the characteristics of the devices and networks used in \ac{IoT} combined with the power consumption focus of this work, a specific kind of attacks performed at the network layer is of special interest and importance: battery depletion attacks, also known as ``vampire'' attacks.
 
-Battery depletion attacks aim at draining the battery -- ``life'' -- of the network devices, working over time to entirely disable a network, hence being called ``vampire'' attacks. 
-These attacks do not focus on flooding the network with many packets, instead they drain the node's life by delaying the packets transmission. 
-Some of the attacks target specific implementations while others are independent of the protocol~\cite{Vasserman2013}\cite{Pongle2015}. 
-In the following paragraphs, we present the most relevant attacks, performed on different routing solutions that demonstrate the draining power of such methods.
+Em ambientes \ac{IdC} existe uma vasta gama de ataques que podem ser conduzidos em qualquer uma das camadas \ac{OSI}, desde ruído ao nível físico a ataques \ac{DoS} ao nível aplicacional. No entanto, dadas as características deste dispositivos existe uma grupo de ataques ao nível da camada de rede com especial interesse e importância: ataques de esgotamento de baterias, também conhecidos como ataques ``vampiro''.
+Estes, focam-se em drenar as baterias -- ``vida'' -- dos dispositivos, trabalhando ao longo do tempo para desativar completamente a rede, daí serem chamados ataques ``vampiro''. Alguns destes ataques focam-se em implementações especificas enquanto outros são agnósticos ao protocolo utilizado \cite{Vasserman2013}\cite{Pongle2015}. Nos próximos parágrafos apresentamos alguns destes ataques em diferentes soluções de \textit{routing} para demonstrar o seu funcionamento.
 
-\subsection{Stateless Protocols}
+\subsection{Protocolos sem Estado}
 \label{sec:source_routing}
-In systems that use this type of routing protocols, the source node specifies the entire route to the destination in the packet header. 
-This means that intermediaries do not make decisions regarding the next hop, they only forward to the next node as specified in the original path therefore reducing the amount of computation performed and the used energy. 
-Using this transmission scheme, a malicious device can specify paths through the network that are far from optimal, wasting energy at the intermediate nodes who follow the included malicious source route. 
-The \emph{Carousel Attack} is an example of such an attack. 
-Its objective is to send a packet along a route composed of a series of loops. 
-This way, a single node may forward the malicious packet several times increasing the total energy consumption by a factor of the number of loops the attacker has introduced on the packet header path. 
-It targets source routing protocols by exploiting the limited verification of the packet headers at the intermediary nodes. 
-Figure \ref{fig:carousel_attack} shows an example where a ``vampire'' node created a path composed of circles around the network when it could have exited after the first hop through the D node.
- 
-\begin{figure}[h]
+Em sistemas que usam este tipo de \textit{routing}, o nó de origem especifica todo o caminho a percorrer até ao destino no cabeçalho do pacote. Isto significa que os nós intermediários não fazem decisões em relação ao próximo nó, limitando-se a seguir as instruções dadas na origem. Usando este esquema de transmissão, um atacante pode especificar caminhos pela rede que estão longe do caminho ótimo entre dois pontos, gastando energia desnecessária no processo. O Ataque \textit{Carousel} é um exemplo desses ataques. O seu objetivo é conduzir o pacote numa série de círculos ao longo da rede aproveitando-se das verificações limitadas aos cabeçalhos do pacote por parte dos nós intermediários. A Figura \ref{fig:carousel_attack} mostra um exemplo em que um nó ``vampiro'' especificou um caminho composto por círculos ao longo da rede quando poderia ter chegado ao seu destino logo após a primeira passagem pelo nó D.
+
+\begin{figure}
+\centering
+\begin{minipage}{.55\linewidth}
   \centering
-  \includegraphics[width=0.9\linewidth]{figures/Carousel_Attack.pdf}
-  \caption{Carousel Attack.}
+  \includegraphics[width=1\linewidth]{figures/Carousel_Attack.pdf}
+  \captionof{figure}{Ataque Carousel}
   \label{fig:carousel_attack}
-\end{figure}
-
-\subsection{Stateful Protocols}
-\label{sec:tables_routing}
-In systems that use this type of routing protocols, network nodes are aware of the network topology and its state, being able to make local decisions on the node to whom they will forward the packet. 
-The effect of the ``vampires'' in this type of routing is limited since the route is built dynamically from many independent forwarding decisions. 
-However, attackers can still cause damage by forcing packet forwarding through nodes that would not be on the optimal path, for example, by forwarding the packet back to the source. 
-The \emph{Directional Antenna Attack} is an example of such an attack. 
-In it, the attacker takes the role of an intermediary and not the source of a packet. 
-If the attacker has the resources to use a directional antenna, it can deposit a packet on arbitrary parts of the network while also forwarding the packet locally. 
-This causes nodes that were not on the optimal path to also consume energy by forwarding a packet they would not normally receive, therefore increasing the total energy consumption by a factor of the directions the attacker can position the antenna and the distance between the receiver and the sink. 
-Figure \ref{fig:directional_antenna_attack} shows an example where a ``vampire'' intermediary deposited a node on a distant location of the network, causing the packet to follow two different routes towards its destination
-
-\begin{figure}[h]
+\end{minipage}%
+\begin{minipage}{.55\linewidth}
   \centering
-  \includegraphics[width=0.8\linewidth]{figures/Directional_Antenna_Attack.pdf}
-  \caption{Directional Antenna Attack.}
+  \includegraphics[width=1\linewidth]{figures/Directional_Antenna_Attack.pdf}
+  \captionof{figure}{Ataque Antena Direcional}
   \label{fig:directional_antenna_attack}
+\end{minipage}
 \end{figure}
 
-While it is true that there are mitigation strategies available for these attacks \cite{Vasserman2013}, those strategies imply that additional checks and validations are performed on the network nodes.
-For example, nodes could check the packet headers for loops in the message path, and if found, update the route or simply drop the packet, therefore mitigating the carousel attack. 
-If we were to mitigate the directional antenna attack, we could, for instance, analyse the route paths of a given packet that reached the sink more than once. 
-The last node identifier to appear duplicated before the path started to diverge would be the one who directed the packet to multiple regions, therefore revealing the attacker. 
-Unfortunately, these mitigation strategies are placing a burden on the already constrained nodes. 
-For each new attack that we wish to mitigate, additional checks and validations must be performed, eventually reaching a point were the costs involved in validating each packet could be considered an attack on the node resources. 
-To address this issue, we propose that a \emph{secure bootstrapping} is performed for every device that joins the network. 
-The following section details the bootstrapping, how can it be performed and some existing solutions that follow this approach.
+\subsection{Protocolos com Estado}
+\label{sec:tables_routing}
+Em sistemas que usam este tipo de \textit{routing}, os nós estão cientes da topologia da rede e são capazes de tomar decisões locais em relação à direção que um determinado pacote irá tomar. Neste caso, os atacantes podem tomar vantagem deste facto e enviar pacotes para nós da rede que não estão no caminho ótimo para o destino, ou enviar o mesmo pacote para diferentes locais da rede. O Ataque Antena Direcional é um exemplo desses ataques. Nele, o atacante toma o papel de intermediário e deposita o pacote numa localização longínqua da rede, com a ajuda, ou não, de uma antena direcionada ou até mesmo usando mais potência do que os restantes nós. Isto faz com que apenas um pacote possa ser enviado para múltiplas localizações distantes na rede e faça múltiplas travessias até atingir o seu destino. A Figura \ref{fig:directional_antenna_attack} mostra um exemplo em que um nó ``vampiro'' depositou um pacote num local distante na rede ao mesmo tempo que o enviou pelo trajeto normal obrigando o pacote a tomar dois caminhos até ao seu destino.
 
-\section{Secure Bootstrapping}
+Embora seja verdade que existem estratégias de mitigação para estes ataques \cite{Vasserman2013}, essas estratégias implicam verificações e validações adicionais em cada nó e para cada pacote. Por exemplo, os nós poderiam verificar os cabeçalhos dos pacotes para detetar ciclos no trajeto da mensagem e invalidar o pacote. Ou caso vários pacotes repetidos cheguem ao destino, poder-se ia analisar o caminho feito por cada pacote e o ponto de convergência no trajeto indicaria o nó que enviou múltiplos pacotes revelando assim o atacante. Infelizmente estas estratégias de mitigação estão a colocar um fardo pesado sobre estes nós com recursos muito limitados. Para cada ataque adicional que quiséssemos mitigar mais validações teriam de ser empregues, chegando a um ponto em que os recursos despendidos em validações poder-se-iam equiparar a um ataque aos recursos desse elemento. Para resolver este problema, propomos que um \textit{bootstrapping} seguro seja efetuado para cada novo dispositivo da rede. A secção seguinte detalha o que é um processo de \textit{bootstrapping}, como é que ele é efetuado e algumas soluções existentes que seguem esta abordagem.
+
+\section{Bootstrapping Seguro}
 \label{sec:secure_bootstrapping}
-The term bootstrapping is applied to the process in which a new device is connected to an existing network. 
-To achieve a secure bootstrapping, a unique identity and security parameters are associated with the device before this phase. 
-There are several ways to carry out the initial setup, either via a wired or wireless interface. 
-In the case of wireless bootstrapping, attention must be given to eavesdropping so that the secure credentials cannot be intercepted.
-Since the presented ``vampire'' attacks are to be performed by a malicious intruder capable of interacting with the network, if we could assure a secure bootstrapping, meaning that the new node would be authenticated before becoming an active member of the network, those attacks could no longer be performed.
-
-Secure bootstrapping and network admission solutions have already been proposed in past literature. 
-However, the development and optimization of application layer protocols as well as network layer routing schemes allows for new approaches and solutions that can now fit the nature of \ac{IoT} devices.
-Bergman et al.\cite{Bergmann2012} proposed a three-phase secure bootstrapping technique for nodes in a \ac{CoAP} network. 
-Firstly, the joining node broadcasts a request for a \ac{CSDS}. 
-This server, once contacted by a new node, takes the responsibility of key distribution. 
-Then, the system goes under a vulnerable phase where the secret is transmitted from the \ac{CSDS} onto the new device. 
-The authors propose a short audible or visual feedback to the human installer when the secret is received and assumes that potential eavesdroppers can not intercept this transmission. 
-Finally, this secret is used to setup the \ac{DTLS} connection. 
-This approach has major security drawbacks on the secret transmission phase, so the authors propose limiting the radio power to a low level and disable data forwarding beyond the local network segment, but these techniques cannot assure that an attacker will not be able to intercept the transmission.\\
-Oliveira et al. \cite{Oliveira2013} proposed an admission control solution for 6LoWPAN networks based on administrative approval. 
-Each joining node would broadcast its presence to the network, and that broadcast would be received by the administrator in the management server. 
-Then, the administrator would grant access to that new device based on its address, and that information would be transmitted to all the devices in the network. 
-After this phase, the device would be allowed communication as a regular member of the network by its neighbours. 
-This approach has the advantage of requiring no previous setup on the device before operation, but it is vulnerable to Spoofing Attacks, where as attacker obtains access to the network by bypassing the \ac{ACL} with the identifier of a legitimate node.
-The authors state that some work still needs to be performed in order to validate the sensor identity and leave the pre-instalment of keys on the device as a likely possibility for the deployment of the system. 
-
-Besides these related work efforts, there are additional secure bootstrapping techniques \cite{Fischer2012} that rely on tokens and one-time-passwords for cyphering the first communications and receiving security credentials, or even approaches where the manufacturers deploy the security credentials during the manufacturing process of the device. 
-Still these approaches either require additional hardware to be employed or the need to trust the manufacturer credentials.\\
-
-In our work, we propose a secure bootstrapping method where:
+O termo \textit{bootstrapping} é aplicado ao processo em que um novo dispositivo é adicionado a uma rede existente. Para atingir um \textit{boostrapping} seguro, é necessário fornecer identificadores e/ou credenciais de segurança que permitam ao novo dispositivo identificar-se perante a rede ou uma forma para esse dispositivo obter essas credenciais. Dado que os ataques apresentados são executados por intrusos capazes de interagir com a rede a partir de um nó comprometido, se conseguíssemos garantir um \textit{bootstrapping} seguro, na medida em que cada novo nó seria autenticado antes de se tornar um membro ativo da rede, então esses ataques já não poderiam ser executados.
+Métodos de \textit{bootstrapping} seguro e sistemas de admissão já foram previamente propostos. No entanto, o desenvolvimento e otimização de protocolos ao nível aplicacional bem como novos esquemas de \textit{routing} permitem novas abordagens mais focadas na natureza dos dispositivos usados na \ac{IdC}. Bergman et al.\cite{Bergmann2012} propôs uma técnica tri-faseada de \textit{bootstrapping} seguro para nós de uma rede que usa o protocolo \ac{CoAP}. No entanto a distribuição da chave de rede usada para cifrar as comunicações daí em diante pode ser intercetada e com isso um atacante pode inserir os seus próprios nós maliciosos na rede. Os autores propõem reduzir a potência do radio emissor durante esta fase mas não é certo que isso seja impedimento para um atacante com elevados recursos de observação.
+Oliveira et al. \cite{Oliveira2013} propôs uma solução de controlo de admissão para redes \ac{6LoWPAN} baseado em aprovação administrativa. Cada novo dispositivo manifestaria a sua presença através da rede, e um administrador recebendo essa notificação daria acesso ou não ao dispositivo com base no seu identificador. Esta solução embora não necessite de hardware ou infraestruturas adicionais também não consegue garantir um processo seguro pois podem ser efetuados ataques de \textit{man-in-the-middle} comprometendo a aprovação de novos dispositivos.
+Para além destes esforços de trabalho relacionado, existem técnicas adicionais de \textit{bootstrapping} seguro \cite{Fischer2012} que recorrem a \textit{tokens} e passwords de uso único para cifrar as primeiras comunicações de um nó na rede e permitir a receção de credenciais adicionais. Existem também abordagens em que os fabricantes de \textit{hardware} carregam previamente os dispositivos com as credenciais de segurança necessárias para a fase operacional durante a fase de fabrico. No entanto estas abordagens necessitam de \textit{hardware} adicional ou confiança nas credenciais inseridas pelos fabricantes. No nosso trabalho propomos um sistema de \textit{bootstrapping} seguro -- AutoStrap -- onde:
 \begin{itemize}
-	\item No additional hardware needs to be employed during the bootstrapping process;
-	\item No additional security credentials need to be fetched after the deploy on the field;
-	\item No security credentials need to be generated and uploaded to the joining nodes by third parties;
-	\item No initial message exchange is sent unencrypted and/or unauthenticated.
+	\item{Não é necessário hardware adicional durante a instalação no terreno};
+	\item{Não é necessário obter credenciais adicionais após instalação no terreno};
+	\item{Não é necessário recorrer a terceiros para gerar ou instalar credenciais};
+	\item{Todas as mensagens enviadas na rede são cifradas e autenticadas desde o primeiro momento}
 \end{itemize}
-
-We called our solution Garlicstrap because it is intended to keep the ``vampire'' nodes from entering the network\footnotemark. 
-\footnotetext{The inspiration for the name came from the properties of garlic in vampire stories and lore.}
-
-In the following Section, our complete infrastructure proposal is presented in terms of objectives and requirements, architecture, used protocols and implementation details. 
-
-\section{Proposed Infrastructure}
-\label{sec:proposed_infrastructure}
-\ac{IoT}'s principle of connecting every device to one another in an automated way can create networks beneficial to a wide range of applications, from home environments to large enterprises or even cities. 
-However these are domains that have different requirements. 
-A home application should be easy to setup without complex configurations. 
-An enterprise solution can benefit from additional administrative configurations as long as the deployment of the network nodes is done quickly due to their potentially large number. 
-In order to demonstrate the capacities and applicability domain of our system, we will use a Smart University Campus scenario since it is our belief that it can effectively demonstrate the needs targeted by our work.
-In the following sections we will apply the information gathered in terms of attacks and mitigation strategies to find suitable communication protocols and define our objectives and requirements. 
-Then, a model of a university campus with our proposed power-efficient network architecture will be presented and their components' roles explained.
-
-
-\subsection{Objectives and Requirements}
-A major concern amongst \ac{IoT} application is the communication model. 
-It is our goal that the entire network is power-aware, using as minimum energy as possible.
-Also, it is very important that the deployment of new nodes and system maintenance can be performed by regular staff members without knowledge of the inner workings of the system.
-This creates usability challenges and requires simple and automated interfaces and bootstrapping processes. 
-Additionally, the following set of requirements is critical in order to allow secure communications to take place:
-\begin{itemize}
-	\item Confidentiality: Without confidential message transmission, packets would flow in the network in plain text. 
-	Attackers could sniff the packets in order to obtain network activity information constituting a breach in security. 
-	Even if there is no critical data being sent, privacy is still compromised;
-	\item Integrity: Assuring message integrity means that the message was not modified between the source and its destination. 
-	Without integrity we could not rely on the received data since it could have been, intentionally or not, modified on-the-fly, and be supplying wrong information to the system;
-	\item Authentication: The studied type of networks relies on hop-to-hop communication, meaning several nodes will take place in forwarding a packet. 
-	If they are not authenticated they could perform a wide range of attacks and disrupt the network.
-\end{itemize}
-
-\subsection{Protocol Stack}
-\label{sec:protocol_stack}
-There are many alternatives and some proposed standards when it comes to choosing a protocol stack for \ac{IoT} communications \cite{Al-Fuqaha2015} implying that a thorough analysis of the existing solutions is necessary to analyze the strong and weak points of each candidate.   
-
-\subsubsection{Data Link and Physical Layer}
-\label{sec:data_link}
-The first requirement for the physical layer of the \ac{IoT} is the use of wireless radios. These should aim for simplicity, low-power and low-cost communications. While wireless communication is widespread and can be found in deployment scenarios ranging from homes to airports, the type of radio commonly used, known as Wi-Fi \cite{IEEE2012}, uses a high amount of power causing concerns for battery life. IEEE 802.15.4 \cite{IEEEComputerSociety2011}, on the other hand, was created for \ac{LR-WPAN} and its specifications focus on low power consumption, low data rate, low cost and high message throughput make it a strong candidate for \ac{IoT} applications.
-
-\subsubsection{Network Layer}
-\label{sec:network_layer}
-\ac{IoT}'s vision and its massive deployment can only be achieved through the use of IPv6 \cite{Pickard2015} because of the need of many more individual IP addresses. 
-However, physical layers more suitable for communication over constrained networks pose some limitations to the use of the IPv6 messages. 
-For example, the limited packet size in IEEE 802.15.4 based networks. 
-To tackle these issues, the \ac{IETF} \ac{6LoWPAN} \cite{Shelby2012} working group developed a standard based on header compression to reduce the transmission overhead, fragmentation to meet the IPv6 \ac{MTU} requirements and forwarding to link-layer to support multi-hop delivery \cite{Hui2008}. 
-\ac{6LoWPAN} is able to remove a major share of IPv6 overheads, being able to compress its headers to two bytes, therefore allowing small IPv6 datagrams to be sent over IEEE 802.15.4 networks. \\
-With the use of 6LoWPAN, routing protocols can now use the IPv6 addressing scheme. 
-Given the possible frequent topology changes associated with the radio-link instability, successful solutions must take these requirements into account on their specification.
-\ac{RPL} \cite{Winter2012} can support a wide variety of link-layers and is prepared for devices with very limited resources. 
-It is able to build up network routes, distribute routing knowledge among nodes and adapt the topology in a very efficient way. 
-Furthermore, \ac{RPL} has a built-in topology repair mechanism that acts in the case of a routing topology failure, link failure or node failure.
-
-\subsubsection{Application Layer}
-\ac{CoAP} \cite{Shelby2014} is a document transfer protocol based on \ac{REST} on top of \ac{HTTP} functionalities. 
-\ac{CoAP}'s objective is to enable tiny constrained devices to use RESTful interactions, where clients and servers expose and consume web services using \ac{URIs} together with  \ac{HTTP} Get, Post, Put and Delete methods. 
-Unlike \ac{REST}, \ac{CoAP} runs over \ac{UDP} instead of \ac{TCP} which makes it suitable for full IP networking in small micro-controllers. 
-Retries and reordering are implemented at the application stack using a messaging sub-layer that detects duplicated messages and provides reliable communication using different types of messages. 
-Confirmable messages must be acknowledged by the receiver, nonconfirmable follow the fire-and-forget model. 
-Despite being a lightweight protocol, \ac{CoAP} still provides important features:
 	
+Chamámos à nossa solução AutoStrap porque se destina a permitir um processo de \textit{bootstrapping} seguro e eficiente, que tenha o mínimo de interação necessária com os operadores do sistema e não necessite de conhecimento interno do sistema para ser usado. Na secção seguinte, a nossa infraestrutura proposta é analisada em termos de requisitos e objetivos, arquitetura e detalhes de implementação.
+
+\section{Infraestrutura Proposta}
+\label{sec:proposed_infrastructure}
+De forma a demonstrar as capacidades e domínio de aplicabilidade da nossa infraestrutura e sistema de \textit{bootstrapping}, iremos usar um cenário de Campus Universitário Inteligente. Nos parágrafos seguintes serão aplicadas as informações recolhidas em termos de ataques e estratégias de mitigação com o intuito de selecionar protocolos de comunicação adequados e definir os objetivos e requerimentos do sistema.
+
+\subsection{Objetivos e Requerimentos}
+Uma necessidade premente entre aplicações \ac{IdC} é que as suas comunicações sejam eficientes, neste sentido é nosso objetivo que toda a rede consuma o mínimo de recursos possível. Além disso, é necessário que o sistema seja utilizado por operadores sem conhecimento do seu funcionamento interno e que o processo de \textit{bootstrapping} seja automatizado e eficiente. É ainda necessário garantir um modelo de comunicação seguro, pelo que é critico que as pacotes propagados na rede tenham garantias de confidencialidade, integridade e autenticidade.
+
+\subsection{Stack de Protocolos}
+\label{sec:protocol_stack}
+Uma análise detalhada das diversas alternativas existentes em termos de protocolos para ambientes \ac{IdC} \cite{Al-Fuqaha2015} foi conduzida para revelar os pontos fortes e fracos de cada candidato. É de seguida apresentado um resumo dos protocolos selecionados para fazem parte do \textit{stack} do modelo de comunicação.
+
+\subsubsection{Camada Física e Data-Link}
+\label{sec:data_link}
+Dado que a maioria dos dispositivos \ac{IdC} necessitam de rádios \textit{wireless}, estes devem visar simplicidade e baixos consumos. Uma vez que o foco na cobertura de grandes distâncias faz o Wi-Fi\cite{IEEE2012} ter valores elevados de consumo energético, o protocolo o protocolo IEEE 802.15.4 \cite{IEEEComputerSociety2011} foi selecionado devido às suas especificações de baixo consumo energético, baixa taxa de transmissão de dados e alto rendimento de propagação de pacotes.
+
+\subsubsection{Camada de Rede}
+\label{sec:network_layer}
+A visão da \ac{IdC} e a sua massificação só podem ser atingida com o uso do IPv6 \cite{Pickard2015} devido à necessidade de muitos mais endereços IP.
+Dadas as limitações no tamanho dos pacotes das redes IEEE 802.15.4, um grupo de trabalho da \ac{IETF} desenvolveu o mecanismo de compressão de cabeçalhos \ac{6LoWPAN} \cite{Shelby2012} que permite remover uma larga porção dos \textit{overheads} encontrados no uso de pacotes IPv6 \cite{Hui2008}, tornando assim possível o uso deste esquema de endereçamento. Existindo a possibilidade de alterações frequentes na topologia de rede associadas à instabilidade dos rádios, o protocolo \ac{RPL} \cite{Winter2012} foi escolhido devido à sua capacidade de criação e reparação eficiente da topologia de rede em caso de falha ou adição de novos elementos.
+
+\subsubsection{Camada Aplicacional}
+O \ac{CoAP} \cite{Shelby2014} é um protocolo baseado na arquitetura \ac{REST} com o objetivo de permitir interações entre clientes e servidores através de pedidos encontrados no protocolo HTTP tais como \textit{Get}, \textit{Post}, \textit{Put} e \textit{Delete}. Uma vez que usa \ac{UDP} em vez de \ac{TCP} não adiciona os fardos das garantias de retransmissão e controlo de fluxo providenciadas pelo \ac{TCP}. Apesar de ser um protocolo leve, o \ac{CoAP} providencia importantes funcionalidades, tais como:
 \begin{itemize}
-	\item Resource Observation - \ac{CoAP} can extend the \ac{HTTP} request model with the ability to observe a resource, therefore monitoring resources of interest using a publish/subscribe mechanism;
-	\item Resource Discovery - \ac{CoAP} servers provide a list of resources using well-known {URIs} that allow clients to discover what resources are provided and their types;
-	\item Interoperability - since \ac{CoAP} is based on the \ac{REST} architecture, a simple proxy enables \ac{CoAP} to easily interoperate with \ac{HTTP}.
+	\item Observação de Recursos - Monitorização de recursos através de um mecanismo \textit{publish/subscribe};		\item Descoberta de Recursos - Os servidores \ac{CoAP} mantêm uma lista dos seus recursos usando \ac{URIs} bem conhecidos pelos clientes descrevendo o seu tipo e objetivo;
+	\item Interoperabilidade - Dado que o \ac{CoAP} é baseado na arquitetura \ac{REST}, um simples \textit{proximal} é capaz de mapear pedidos \ac{CoAP} a pedidos \ac{HTTP}.
 \end{itemize}
 
-A final overview of the presented stack for \ac{IoT} communication is presented in Table \ref{tab:stack} with the objective of comparing it to the protocol stack commonly used in the Internet.
+%A final overview of the presented stack for \ac{IoT} communication is presented in Table \ref{tab:stack} with the %objective of comparing it to the protocol stack commonly used in the Internet.
+%
+%\begin{table}[h]
+%	\centering
+%	\begin{center} \caption{Protocol Stack Comparison Overview } \label{tab:stack}\end{center}
+%	\begin{tabular}{c|c|c}
+%		Layer & Web & IoT \\
+%		\hline
+%		Application & \ac{HTTP} & \ac{CoAP} \\
+%		Transport & \ac{TCP} & \ac{UDP} \\
+%		Network & IPv6 & 6LoWPAN \\
+%		Data-Link/Physical & 802.11 & 802.15.4
+%	\end{tabular}
+%\end{table}
 
-\begin{table}[h]
-	\centering
-	\begin{center} \caption{Protocol Stack Comparison Overview } \label{tab:stack}\end{center}
-	\begin{tabular}{c|c|c}
-		Layer & Web & IoT \\
-		\hline
-		Application & \ac{HTTP} & \ac{CoAP} \\
-		Transport & \ac{TCP} & \ac{UDP} \\
-		Network & IPv6 & 6LoWPAN \\
-		Data-Link/Physical & 802.11 & 802.15.4
-	\end{tabular}
-\end{table}
-
-\subsection{Garlicstrap}
+\subsection{AutoStrap}
 \label{sec:implementation_details}
-Previously presented bootstrapping methods had the drawbacks of either requiring additional hardware during the commissioning phase, the need to fetch additional credentials after starting the operation phase, or even relying on third party entities to provide those security credentials. Given the characteristics of our target infrastructures, in which there is a need for a management station capable of interpreting data coming from the constrained network, the rationale for designing this bootstrapping scheme was to address all these drawbacks at once with an additional infrastructure component, the bootstrapper. By uploading the necessary security credentials -- the ``garlic'' -- through the use of the bootstrapper component, new nodes would start the operation phase with all the security credentials required for secure communications. Besides the bootstrapper, only a key store for the network credentials is required as additional infrastructure components. More in depth, the security credential provided to the joining nodes is a 128bit key, used for the \ac{AES} \cite{Fips2001} in \ac{CCM} star mode \cite{Corp2005}. This allows packets to have their payload encrypted and the message authenticated with a \ac{MIC} also computed from the AES-128 key. This assures that all the packets flowing through the network, even the joining node first communications, are confidential and authentic. This way, attackers are not able to join the network topology therefore frustrating all attempts to conduct battery depletion attacks. Since the infrastructure administrators are not required and possibly unaware of this process, bootstrapping needs to be performed in an automated way, preferably together with an already existing task. The chosen approach was to upload the security credentials during the firmware uploading of the joining nodes, through the use of an user interface where the operator simply needs to select the type of hardware being commissioned and all the required tasks run in the background. These involve creating an unique identifier for the joining node, fetching the AES-128 key from the key store, storing it in the node firmware and finally upload the new firmware containing the security credential to the new device. A sequence diagram of the full process can be seen in Figure \ref{fig:bootstrapping_process}.
+O principio de funcionamento do AutoStrap é a adição de um novo componente na arquitetura da infraestrutura -- o \textit{bootstrapper} -- que é responsável pela escrita para o dispositivo de todos os identificadores e credenciais de segurança necessários para uma operação que responda aos objetivos e requerimentos do sistema, sem necessidade de obter credenciais após o inicio da fase de operação ou de confiar em credenciais criadas por terceiros. As credenciais utilizadas são um identificador único e uma chave de 128bits usada pelo protocolo \ac{AES} \cite{Fips2001} no modo \ac{CCM} estrela \cite{Corp2005}. O uso desta chave e protocolo permite que os pacotes tenham o seu conteúdo cifrado e o seu cabeçalho autenticado com um \ac{MIC} também gerado a partir dessa mesma chave. Isto assegura que todos os pacotes que se propagam na rede são confidenciais, íntegros e autenticos. Desta forma, os ``vampiros'' não serão capazes de se introduzir na topologia, frustrando assim as suas tentativas de conduzir ataques de esgotamento de bateria. Este processo é iniciado por um operador do sistema, com a ligação do dispositivo ao bootstrapper, e após selecionar o tipo de hardware numa interface gráfica embutida, todo o restante processo é realizado automaticamente em segundo plano tal como apresentado no diagrama de sequência presente na Figura \ref{fig:bootstrapping_process}.
 
 \begin{figure}[h]
   \centering
-  \includegraphics[width=1\linewidth]{figures/Sequence_Bootstrapping_Reviewed.pdf}
-  \caption{Bootstrapping Process}
+  \includegraphics[width=0.8\linewidth]{figures/Sequence_Bootstrapping_Reviewed.pdf}
+  \caption{Processo de Bootstrapping}
   \label{fig:bootstrapping_process}
 \end{figure}
 
-\subsection{System Architecture}
+\subsection{Arquitetura do Sistema}
 \label{sec:system_architecture}
-As previously stated, we will use a Smart Campus scenario. 
-Being aware of the technological improvements on sensor networks and building management technologies, the campus administration decided to improve the monitoring of the overall conditions of the buildings and inside environments in order to better preserve its assets. 
-To cope with the new requirements, we propose a solution for the monitoring of the campus sections by deploying a wireless sensor network on each building, connected to a central management station operated by the available staff. 
-The scenario will be based on the \ac{IST} campus model. An overview of the system and its components over the \ac{IST} blueprints can be found in Figure \ref{fig:global_architecture}. 
-Regarding each individual component:
+A arquitetura do nosso sistema assenta em parte nos modelos apresentados na secção \ref{sec:network_overview}, onde redes \ac{6LoWPAN} com recursos limitados comunicam com redes externas através de um \textit{border router}.
+Para melhor visualizar e entender as potencialidades do sistema numa rede de maior dimensão, a Figura \ref{fig:global_architecture} apresenta um cenário de um Campus Inteligente onde cada pavilhão tema sua própria rede 6LoWPAN e reporta dados a um sistema central através de diversos \textit{border routers}. É também verificada a possibilidade de obter informação do sistema através de pedidos dentro da rede ou fora dela pela Internet.
 
-\begin{itemize}
-	\item Numeric Nodes: Represent the network sensor nodes, the most constrained element of the network. 
-	They cooperate to build the topology and route messages hop-by-hop until the root is reached. 
-	These are fully equipped with the previously presented energy efficient protocol stack;
-	\item Alphabetical Nodes: Represent the root node of each section network topology.
-	They are equipped with the same stack of the numbered nodes but are more powerful, preferentially not battery-powered and act as the bridge between the constrained 6LoWPAN environment and the central management station. 
-	These nodes must be more powerful than the numeric ones so that they can process all the requests between a group of sensors and the management station. 
-	Also, although the numeric nodes use low-power wireless radios, the alphabetical nodes must be capable of interfacing with more power consuming radios and protocols, therefore requiring more resources. 
-	This differentiation allows numeric nodes (the large portion of the network devices) to keep their very constrained nature, consuming less energy, while still being able to communicate with external devices;
-	\item Management Station: A black box model of the core components of the system. 
-	Each building reports to the central station and the staff monitors the network status through it;
-	A white box model will be shown in the following sections.
-	\item Client: The system's clients can be any user with access credentials, but mostly the staff members. 
-	They can access the management station either from within the local network or from outside through the Internet.
-\end{itemize}
- 
-\begin{figure}[h]
+\begin{figure}
+\centering
+\begin{minipage}{.55\linewidth}
   \centering
   \includegraphics[width=1\linewidth]{figures/Global_Architecture.pdf}
-  \caption{Global System Architecture}
+  \captionof{figure}{Arquitetura Global}
   \label{fig:global_architecture}
-\end{figure}
-
-\paragraph{\textbf{Central Management Station}}
-The central management station is divided in five main components. 
-A white box schematic of the core components and interactions can be found in Figure \ref{fig:core_components}. 
-Regarding each individual component:
-
-\begin{itemize}
-	\item Key Store: This component is responsible for storing the security credetials used by the network nodes to achieve secure communications.
-	\item Bootstrapper: The bootstrapper acts as the interface between the management station and the network devices. 
-	It generates the device identifier and writes it together with the shared network key into the new device;
-	\item CoAP Client Observer:  The one and only client in the network. 
-	Instead of having users directly requesting the sensor readings, the client will observe each resource and be notified of the new value. 
-	Each time it receives an update, it stores the information on the Data Server for the clients to use;
-	\item Data Server: A database with mappings of each node to the most up to date value reported. 
-	It is updated by the client observer and used on demand by the clients;
-	\item Proxy: Responsible for bridging requests coming from the Internet to the Data Server. 
-	Responsible for authenticating the external clients and providing access to the Data Server information.
-\end{itemize}
-
-Although each user could access the system through a \ac{CoAP} terminal and request the most up-to-date readings from the sensor nodes, this approach would cause unnecessary overheads in the system. 
-Since many clients can connect from different locations, many requests would be performed to the sensor nodes for the same information. This would mean additional memory usage in the physical devices, and more requests to the already constrained battery operated network. 
-With the single client approach acting as an observer, only one message needs to go through the network for each new reading.
-
-\begin{figure}[h]
+\end{minipage}%
+\begin{minipage}{.55\linewidth}
   \centering
-  \includegraphics[width=1.05\linewidth]{figures/White_Box_Model.pdf}
-  \caption{Central Management Station}
-  \label{fig:core_components}
+  \includegraphics[width=1\linewidth]{figures/White_Box_Model.pdf}
+  \captionof{figure}{Arquitetura Sistema Central}
+  \label{fig:white_box}
+\end{minipage}
 \end{figure}
 
-\section{Evaluation}
-\label{sec:evaluation}
-In this Section we measure and profile the resources required for the system operation in order to discover if our choice of protocols and mitigation strategies is suitable for \ac{IoT} hardware. 
-This ranges from the memory required for the nodes operating system and protocol stack, to the hardware power consumptions. 
-Furthermore we evaluate our bootstrapping infrastructure by measuring the time required for uploading a firmware to the new device and the ease of use by counting the steps required for the process to take place. 
-Each following subsection both presents the collected data and explains the process and technologies involved in obtaining it.
+Em relação à arquitetura do sistema central de gestão, visível em maior detalhe na Figura \ref{fig:white_box}, os componentes \textit{Proxy} e \textit{Data Server}, responsáveis por mapear pedidos vindos de fora da rede e por armazenar leituras e eventos vindos da rede com recursos limitados, já seria expectável serem encontrados em outros sistemas. A inovação contida neste proposta advém dos outros dois componentes do sistema, o \textit{CoAP Client Observer}, e o \textit{Bootstrapper} que faz por sua vez uso de um \textit{Key Store}. O \textit{KeyStore} é responsável por guardar a chave de rede utilizada no processo de \textit{bootstrapping}. O \textit{Bootstrapper} é responsável por conduzir o processo AutoStrap mapeando o novo dispositivo no sistema e fornecendo-lhe as credenciais de segurança necessárias. Por fim o \textit{CoAP Client Observer} atua como o único cliente da rede. Em vez de termos utilizadores a requisitar novas leituras diretamente aos sensores da rede com recursos limitados, este cliente regista-se junto dos dispositivos existentes e é notificado de cada novo valor ou evento despoletado pelos dispositivos. Embora fosse possível ter vários utilizadores a requisitar diretamente estes valores, isso implicaria um gasto adicional de recursos para processar todos esses pedidos. Com a utilização de um único cliente, apenas uma mensagem necessita de atravessar a rede para cada novo evento, sendo esse evento guardado no \textit{Data Server} para consulta por parte dos utilizadores.
 
-\subsection{Hardware Suitability}
-In order to evaluate if the \ac{IoT} hardware is capable of supporting our choice for the stack of protocols security measurements it is necessary to measure the firmware size. 
-For that task, the \textit{msp430-size}\footnote{http://www.ti.com/tool/msp430-gcc-opensource} tool was used. 
-This tool analyses the firmware file and outputs the amount of \textit{text}, \textit{data} and \textit{bss}.
-\textit{Text} corresponds to code and constants, \textit{data} is for initialized variables and \textit{bss} is for uninitialized data (which is initialized with zero in the startup code).
-The total amount of flash memory can be calculated from the sum of the text and data parameters.
-The total amount of \ac{RAM} memory can be calculated from the sum of the data and bss parameters.
-Both the firmware without security mechanisms and the one with link-layer security were analysed for their Flash and RAM usage. 
-The results can be found in Table \ref{tab:space_req}. The inclusion of link-layer security software represents a 3.02\% increase in Flash usage and a 1.02\% increase in RAM usage.
+\section{Avaliação}
+\label{sec:evaluation}
+A nossa avaliação divide-se em duas componentes. Primeiro, medimos e documentamos os recursos físicos necessários para suportar os protocolos e estratégias de mitigação escolhidas de forma a entender se são adequados ao hardware usado na \ac{IdC}. Segundo, conduzimos testes de usabilidade ao nosso sistema de gestão de redes para analisar a sua eficiência e facilidade de uso.
+
+\subsection{Aplicabilidade ao Hardware}
+De forma a avaliar o espaço real ocupado pelos protocolos e estratégias de mitigação usados, foi utilizada a ferramenta \textit{msp430-size}\footnote{http://www.ti.com/tool/msp430-gcc-opensource} que mede o tamanho do firmware inserido nos dispositivos da rede. Esta ferramenta permite obter separadamente a quantidade de memoria flash e memória \ac{RAM} ocupada. Os resultados da análise feita, tanto a um firmware base sem mecanismos de mitigação, como a um firmware que introduz segurança nas comunicações são apresentados na Tabela \ref{tab:space_req}. Analisando os resultados podemos concluir que a introdução destes mecanismos representa um aumento de 3.02\% na utilização de memória flash e 1.02\% na utilização de memória \ac{RAM}.
 
 \begin{table}
+\parbox{.45\linewidth}{
 \centering
-\caption{Memory Usage}
+\caption{Memória Utilizada}
 \label{tab:space_req}
 \begin{tabular}{|c|c|c|} \hline
-Security Mechanism&Flash(KB)&RAM(KB)\\ \hline
+Segurança&Flash(KB)&RAM(KB)\\ \hline
 No-Sec& 59.56& 13.54\\ \hline
-LLSec& 61.36& 13.80\\ %\hline
-%DTLS& 84.38 & 15.66\\ \hline
-%LLSec and DTLS& 86.18& 15.91\\
+LLSec& 61.36& 13.80\\ 
 \hline\end{tabular}
-\end{table}
-
-%\begin{figure}
-%\centering
-%\begin{tikzpicture}
-%\begin{axis}[
-%    symbolic x coords={NoSec, LLSec, DTLS, FullSec, cenas},
-%	ylabel=Memory(KB), 
-%	enlargelimits=0.05,
-%	legend style={at={(0.5,-0.1)},
-%	anchor=north,legend columns=-1},
-%	ybar interval=0.8,
-%]
-%\addplot 
-%	coordinates {(NoSec,59.96) (LLSec,61.36)
-%		 (DTLS,84.38) (FullSec,86.18) (cenas,61.36)};
-%\addplot 
-%	coordinates {(NoSec,13.54) (LLSec,13.80) 
-%		(DTLS,15.66) (FullSec,15.91) (cenas, 15.8)};
-%\legend{Flash,RAM}
-%\end{axis}
-%\end{tikzpicture}
-%\caption{Memory Occupation} \label{fig:space_req}
-%\end{figure}
-
-In order to be considered an \ac{IoT} capable device for this work, the selected hardware should possess a 802.15.4 radio, be capable of being battery powered and provide development tools like sensors and actuators that would be mapped to the application layer endpoints. 
-The board also needs to be compatible with the selected operating system and provide low-power modes of operation. 
-With all this in consideration, the Zolertia RE-Mote\footnote{http://zolertia.io/product/hardware/re-mote} board was selected since it fulfilled all the requirements and also provided an integrated cryptoprocessor while maintaining a low-power operation.
-On the other hand, to assure our firmware size is a proper fit for current \ac{IoT} hardware we did not not only verify that if fits the Zolertia RE-Mote memory but also compared it to two other boards also designed for \ac{IoT} applications. 
-The boards are the Arago Systems Wismote\footnote{http://www.wismote.com} and the Texas Instruments CC2538DK\footnote{http://http://www.ti.com/tool/cc2538dk}. 
-The device's memory is shown in Table \ref{tab:hardware_memory} and allows us to conclude that our solution is practical for the target hardware.
-
-\begin{table}
+}
+\hfill
+\parbox{.50\linewidth}{
 \centering
-\caption{Hardware Memory}
-\label{tab:hardware_memory}
+\caption{Memória Existente}
+\label{tab:existing_space}
 \begin{tabular}{|c|c|c|} \hline
-Device Name&Flash(KB)&RAM(KB)\\ \hline
+Dispositivo&Flash(KB)&RAM(KB)\\ \hline
 Zolertia RE-Mote& 512& 32\\ \hline
-Arago Systems Wismote& 128& 16\\ \hline
-Texas Instruments CC2538DK& 512 & 32\\
+Arago Wismote& 128& 16\\ \hline
+TI CC2538DK& 512 & 32\\
 \hline\end{tabular}
+}
 \end{table}
 
-\subsection{Power Consumption}
-The introduction of security mechanisms in low-power networks is necessary and desirable. However, due to the low-power characteristics of \ac{IoT} sensor and actuator networks, a substantial increase in power consumption can disrupt the network by quickly draining the available resources. 
-To this extent, a power consumption analysis was performed on our selected board in order to determine the most suitable battery powering solution. 
-We performed current measurements during periods of silence as well as during periods of radio activity and calculated the power consumption in Watts(W) from the Power Equation $P = I  V$, where I is the current in Amperes(A) and V is the voltage in Volts(V) as presented in Table \ref{tab:power_consumptions}.
+Para entender se o tamanho de firmware usado pelo nosso sistema é adequado aos dispositivos da \ac{IdC} foram analisadas três placas de desenvolvimento (Zolertia RE-Mote\footnote{http://zolertia.io/product/hardware/re-mote}, Arago Systems Wismote\footnote{http://www.wismote.com} and the Texas Instruments CC2538DK\footnote{http://http://www.ti.com/tool/cc2538dk}) e as suas respetivas características sumarizadas na Tabela \ref{tab:existing_space}, sendo possível concluir que dado os tamanhos de firmware observados serem compatíveis com o hardware analisado, e este hardware ser por usa vez utilizado em aplicações \ac{IdC}, a nossa solução é aplicável às redes \ac{IdC}.
+
+\subsection{Consumo Energético}
+Embora seja necessário o uso de mecanismos adicionais para garantir a segurança da informação nas redes \ac{IdC}, caso estes mecanismos obriguem a um elevado consumo energético não poderão ser empregues pois atuarão como atacantes no sentido em que drenarão as baterias dos dispositivos. Desta forma, uma análise ao consumo energético, usando hardware real\footnote{Foi utilizada a placa Zolertia RE-Mote dado o seu foco na redução de consumos e utilização de um criptoprocessador integrado.} foi efetuada com o cuidado de observar tanto momentos de atividade como momentos de silêncio rádio. A partir dos resultados obtidos foi calculado o consumo energético sobre a forma de Potência(W) a partir da fórmula $P = I  V$, onde I é a corrente em Amperes(A) e V a voltagem em Volts(V) e os resultados sumarizados na Tabela \ref{tab:power_consumptions}. Sabendo que o nosso firmware emprega um protocolo de \ac{RDC} capaz de manter o rádio desligado durante cerca de 99\% do tempo de utilização \cite{Dunkels2011}, os dados obtidos validam que a nossa solução mantém um baixo consumo energético podendo assim ser utilizada em ambientes \ac{IdC}.
+
 
 \begin{table}
+\parbox{.45\linewidth}{
 \centering
-\caption{Power Consumption}
+\caption{Consumos Energéticos}
 \label{tab:power_consumptions}
 \begin{tabular}{|c|c|c|c|} \hline
-Mode&Voltage(V)&Current(mA)&Power(W)\\ \hline
+Modo&V&mA&W\\ \hline
 Radio ON& 9.0& 17&0.15\\ \hline
 Radio OFF& 9.0& 5.2&0.05\\ 
 \hline\end{tabular}
-\end{table}
-
-Knowing that the ContikiMAC \ac{RDC} protocol enables the radio to be turned off for roughly 99\% of the time\cite{Dunkels2011}, the collected data shows that our solution maintains the low-power consumptions required for \ac{IoT} environments.
-
-\subsection{Bootstrapping Process}
-In order to evaluate our bootstrapping process we conducted an experiment on the amount of time (in seconds) required to bootstrap a new node as an indicator of the process efficiency. The process starts with the operator connecting the new device to the bootstrapper and finishes with the operator removing the device from the bootstrapper. During the process the operator needs to open the user interface, select the appropriate device and press the upload button. In the background the system will compile the source code to match the target platform, then it will erase the previous firmware and finally upload the new one. The experiment results are presented in Table \ref{tab:bootstrapping_time}. Although the apparent bootstrapping process time is 34 seconds, the process efficiency is especially important when bootstrapping multiple devices. In this case, after the first one, the user interface and target hardware will already be open and selected and the source code will already be compiled, resulting in a real time of 12 seconds. If needed, an operator could perform up to 300 bootstrapping processes in a single hour, allowing us to conclude that our solution is practical for the presented scenario.
-
-\begin{table}
+}
+\hfill
+\parbox{.55\linewidth}{
 \centering
-\caption{Bootstrapping Timings}
+\caption{Tempos de Bootstrapping}
 \label{tab:bootstrapping_time}
 \begin{tabular}{|c|c|} \hline
-Operation&Time(s)\\ \hline
-Insert New Device&2\\ \hline
-Open User Interface&5\\ \hline
-Select Target Hardware&4\\ \hline
-Compile Source Code&13\\ \hline
-Erase Previous Firmware&5\\ \hline
-Upload New Firmware&3\\ \hline
-Remove New Device&2\\ 
+Operação&Tempo(s)\\ \hline
+Inserir Novo Dispositivo&2\\ \hline
+Abrir Interface&5\\ \hline
+Selecionar Hardware&4\\ \hline
+Compilar Código Fonte&13\\ \hline
+Eliminar Firmware Existente&5\\ \hline
+Upload Novo Firmware&3\\ \hline
+Remover Novo Dispositivo&2\\ 
 \hline\end{tabular}
+}
 \end{table}
 
-\section{Conclusions}
-\label{sec:conclusion}
-Due to the limitations of \ac{IoT} devices, achieving secure communications is not an easy task. In order to allow the deployment of battery powered nodes, their communication model must be very efficient and consume the minimum amount of power required for operation. To achieve those requirements we started by analysing the existing protocols across the OSI layers, trying to find the best suited solutions for this type of environments. After a thorough comparison we achieved a working stack of protocols but soon discovered possible breaches and attacks, especially on the network layer. Those attacks were further investigated and catalogued. Given the common principle on the majority of the attacks, the introduction of rogue nodes to the network, we presented some possible solutions based on secure bootstrapping, the secure authentication of new nodes when joining a network.
-Once the energy efficient stack, possible attacks and mitigation strategies were defined, we proposed our solution based on a Smart Campus scenario. This solution is focused on providing the joining devices all the secure credentials required for a secure bootstrapping before the deploy on the field, so that when they start the operation phase no additional credentials need to be fetched, implying that no additional energy is spent on configuration.
-We evaluated our system with regard to hardware applicability, power consumption and bootstrapping efficiency, concluding that it is a good fit for \ac{IoT} applications.
-As future work, memory access protection should be addressed in order to prevent the stealing of secure credentials from deployed devices.
+\subsection{Processo de Bootstrapping}
+Tendo em conta a necessidade de que o processo de bootstrapping seja rápido e acessível a funcionários não familiarizados com o funcionamento interno do sistema, conduzimos experiências que permitiram observar o tempo e passos necessários para completar um processo de bootstrapping como medidas da sua usabilidade. A lista de passos e tempo observado é apresentada na Tabela \ref{tab:bootstrapping_time}. Dado que para além da inserção e remoção física do dispositivo, tudo o que o operador necessita de indicar é o tipo de hardware utilizado é assim cumprido o requisito de não existir necessidade de conhecimento adicional. Embora o tempo total aparente de bootstrapping seja 34 segundos, a sua eficiência é especialmente importante num processo em série. Nesse caso, após a primeira sequência todo o processo de abertura da interface, seleção de hardware e compilação já está realizado, representando um ganho de 22 segundos resultando num tempo real de 12 segundos. Desta forma podemos concluir que a nossa solução é prática e adequada aos cenários \ac{IdC}.
 
+\section{Conclusões}
+\label{sec:conclusion}
+Dadas as limitações dos dispositivos utilizados na redes \ac{IdC}, obter comunicações seguras não é uma tarefa fácil. Para atingir este objetivo realizámos uma análise extensiva aos protocolos e estratégias de mitigação de ataques ``vampiros'' existentes estabelecendo uma \textit{stack} de protocolos que usámos nos dispositivos com recursos limitados. Experiências em \textit{hardware} real confirmam que o \textit{stack} encontrado tem tanto um tamanho como um consumo energético compatível com os dispositivos \ac{IdC}.
+Face às exigências adicionais em termos de infraestrutura que o nosso modelo de comunicação necessita, propusemos uma arquitetura central que vai de encontro às necessidades correntes dos ambientes \ac{IdC} abordados e emprega mecanismos ao nível aplicacional para reduzir o número de pacotes que fluem na rede. Esta infraestrutura possui também os componentes adicionais de baixo impacto em termos de recursos necessários que permitem a execução do processo de \textit{bootstrapping} seguro proposto -- AutoStrap. Processo este automático, que não necessita de conhecimento interno por parte do operador e com métricas de usabilidade que o tornam adequado aos ambientes \ac{IdC}.
+
+Como trabalho futuro, salientamos a necessidade de proteção da memória dos dispositivos para impedir o roubo de credenciais de segurança e consequente clonagem dos dispositivos. Deixamos como sugestão o uso de circuitos integrados com mecanismos de impedimento de leitura ou o bloqueio via software de certas regiões de memória dos dispositivos onde residem as chaves de rede.
 %
 % ---- Bibliography ----
 
